@@ -1,0 +1,23 @@
+<Project Sdk="Dalamud.CN.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <DalamudApiLevel>15</DalamudApiLevel>
+    <Version>1.0.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Use_DalamudPackager>false</Use_DalamudPackager>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OmenTools\OmenTools.csproj" />
+    <ProjectReference Include="..\FFXIVClientStructs.Expansion\FFXIVClientStructs.Expansion\FFXIVClientStructs.Expansion.csproj" />
+    <PackageReference Include="TinyPinyin" Version="1.1.0" />
+    <PackageReference Include="DailyRoutines.CodeAnalysis" Version="2.6.0" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Update="DotNet.ReproducibleBuilds" Version="2.0.5" />
+  </ItemGroup>
+</Project>
