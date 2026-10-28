@@ -103,3 +103,5 @@ protected override void OnStart(FeatureLifetime activation)
 | 在线 `.cs` 模块 | 由 Omni 提供编译引用，不需要写 csproj 或打包 DLL |
 | 在线 `.dll` 模块 | 使用与当前 Omni 一致的依赖编译，不把 TreeTools、OmenTools 等共享库打进模块 |
 | 独立插件使用 `Runtime` | 当前版必须同时提供 OmenTools 和 FFCS；它不是零依赖运行库 |
+
+OmenTools 与 FFXIVClientStructs.Expansion 保持上游固定提交，不在子模块内维护 Omni 专用修改。需要补充 Omen 服务顺序、任务退出、网络、互操作或游戏数据行为时，在 TreeTools 内通过包装、扩展或适配控制器实现；原生 UI 相关适配放入 TreeToolKit。确需修改上游时，先提交正式上游 PR 并固定合并提交。

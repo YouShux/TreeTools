@@ -104,7 +104,6 @@ public sealed partial class Runtime : IAsyncDisposable
         try
         {
             await StopServicesAsync().ConfigureAwait(false);
-            PluginLog.Information("TreeTools-owned tasks have completed and service cleanup has finished.");
         }
         catch (Exception exception)
         {
@@ -189,7 +188,6 @@ public sealed partial class Runtime : IAsyncDisposable
         {
             var helpers = Get<ConcurrentDictionary<OmenTaskHelper, byte>>("TaskHelpers");
             await ReleaseAsync(helpers.Keys.ToArray(), static helper => helper.Dispose()).ConfigureAwait(false);
-            PluginLog.Information("Upstream task cleanup was called; the upstream library does not expose worker completion.");
         });
 
         Set(nameof(DService.ObjectTable), CreateWrapper("OmenTools.Dalamud.Services.Game.Object.ObjectTable"));
