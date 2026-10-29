@@ -5,10 +5,14 @@ namespace TreeTools.Lifecycle;
 
 public sealed class HookRegistry : IDisposable
 {
-    private readonly List<IDalamudHook> hooks = [];
-    private bool disposed;
+    private readonly List<IDalamudHook> hooks    = [];
+    private bool                        disposed;
 
-    public Hook<T> Register<T>(CompSig signature, T detour) where T : Delegate
+    public Hook<T> Register<T>
+    (
+        CompSig signature,
+        T       detour
+    ) where T : Delegate
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         var hook = signature.GetHook(detour);

@@ -25,16 +25,18 @@ public static class ChineseTextConverter
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
-    private static extern int LCMapStringEx(
-        string localeName,
-        uint mapFlags,
-        string source,
-        int sourceLength,
+    private static extern int LCMapStringEx
+    (
+        string         localeName,
+        uint           mapFlags,
+        string         source,
+        int            sourceLength,
         StringBuilder? destination,
-        int destinationLength,
-        nint versionInformation,
-        nint reserved,
-        nint sortHandle);
+        int            destinationLength,
+        nint           versionInformation,
+        nint           reserved,
+        nint           sortHandle
+    );
 
     #region 常量
 

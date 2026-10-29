@@ -35,33 +35,47 @@ public sealed class TaskHelperTask
     internal long StartTime { get; set; }
 
     /// <summary>创建同步任务，返回 false 时等待下一 Tick 重试。</summary>
-    public TaskHelperTask(Func<bool> action, string? name = null, int timeoutMS = 0,
-        TaskAbortBehaviour? timeoutBehaviour = null, TaskAbortBehaviour? exceptionBehaviour = null,
-        Action? timeoutAction = null, Action? exceptionAction = null)
+    public TaskHelperTask
+    (
+        Func<bool>          action,
+        string?             name = null,
+        int                 timeoutMS = 0,
+        TaskAbortBehaviour? timeoutBehaviour = null,
+        TaskAbortBehaviour? exceptionBehaviour = null,
+        Action?             timeoutAction = null,
+        Action?             exceptionAction = null
+    )
     {
         ArgumentNullException.ThrowIfNull(action);
-        Action = action;
-        Name = name ?? "(无名称)";
-        TimeoutMS = timeoutMS;
-        TimeoutBehaviour = timeoutBehaviour;
+        Action             = action;
+        Name               = name ?? "(无名称)";
+        TimeoutMS          = timeoutMS;
+        TimeoutBehaviour   = timeoutBehaviour;
         ExceptionBehaviour = exceptionBehaviour;
-        TimeoutAction = timeoutAction;
-        ExceptionAction = exceptionAction;
+        TimeoutAction      = timeoutAction;
+        ExceptionAction    = exceptionAction;
     }
 
     /// <summary>创建异步任务，必须结束实际工作后才能完成退出。</summary>
-    public TaskHelperTask(Func<CancellationToken, Task<bool>> asyncAction, string? name = null, int timeoutMS = 0,
-        TaskAbortBehaviour? timeoutBehaviour = null, TaskAbortBehaviour? exceptionBehaviour = null,
-        Action? timeoutAction = null, Action? exceptionAction = null)
+    public TaskHelperTask
+    (
+        Func<CancellationToken, Task<bool>> asyncAction,
+        string?                             name = null,
+        int                                 timeoutMS = 0,
+        TaskAbortBehaviour?                 timeoutBehaviour = null,
+        TaskAbortBehaviour?                 exceptionBehaviour = null,
+        Action?                             timeoutAction = null,
+        Action?                             exceptionAction = null
+    )
     {
         ArgumentNullException.ThrowIfNull(asyncAction);
-        AsyncAction = asyncAction;
-        Name = name ?? "(无名称)";
-        TimeoutMS = timeoutMS;
-        TimeoutBehaviour = timeoutBehaviour;
+        AsyncAction        = asyncAction;
+        Name               = name ?? "(无名称)";
+        TimeoutMS          = timeoutMS;
+        TimeoutBehaviour   = timeoutBehaviour;
         ExceptionBehaviour = exceptionBehaviour;
-        TimeoutAction = timeoutAction;
-        ExceptionAction = exceptionAction;
+        TimeoutAction      = timeoutAction;
+        ExceptionAction    = exceptionAction;
     }
 
     /// <summary>获取用于队列状态及日志的名称。</summary>

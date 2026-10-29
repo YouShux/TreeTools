@@ -6,8 +6,12 @@ namespace TreeTools.Threading;
 
 public static class FrameworkWorkScheduler
 {
-    public static async Task RunAsync<T>(IReadOnlyList<T> items, Action<T> operation,
-        CancellationToken cancellationToken = default)
+    public static async Task RunAsync<T>
+    (
+        IReadOnlyList<T>  items,
+        Action<T>         operation,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(operation);

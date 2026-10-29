@@ -13,17 +13,17 @@ namespace TreeTools;
 
 internal class PluginInterfaceAdapter : DispatchProxy
 {
-    private static readonly MethodInfo FollowJump =
+    private static readonly MethodInfo   FollowJump      =
         typeof(IGameInteropProvider).Assembly.GetType("Dalamud.Hooking.Internal.HookManager", true)?
             .GetMethod("FollowJmp", BindingFlags.Static | BindingFlags.NonPublic)
         ?? throw new MissingMethodException("Dalamud.Hooking.Internal.HookManager", "FollowJmp");
-    private static readonly Type SafetyHookType =
+    private static readonly Type         SafetyHookType  =
         typeof(IGameInteropProvider).Assembly.GetType("Dalamud.Hooking.Internal.SafetyHookHook`1", true)
         ?? throw new TypeLoadException("Dalamud SafetyHook backend is unavailable.");
-    private static readonly PropertyInfo HookProperty = typeof(DService).GetProperty(nameof(DService.Hook))
+    private static readonly PropertyInfo HookProperty    = typeof(DService).GetProperty(nameof(DService.Hook))
         ?? throw new MissingMemberException(typeof(DService).FullName, nameof(DService.Hook));
-    private IDalamudPluginInterface source = null!;
-    private InteropProvider interopProvider = null!;
+    private IDalamudPluginInterface      source          = null!;
+    private InteropProvider              interopProvider = null!;
 
     public static IDalamudPluginInterface Create(IDalamudPluginInterface source)
     {
@@ -36,7 +36,7 @@ internal class PluginInterfaceAdapter : DispatchProxy
             throw new MissingMethodException("The fixed interop provider contract is unavailable.");
         var proxy = Create<IDalamudPluginInterface, PluginInterfaceAdapter>();
         var instance = (PluginInterfaceAdapter)proxy;
-        instance.source = source;
+        instance.source          = source;
         instance.interopProvider = new InteropProvider(
             source.GetService(typeof(IGameInteropProvider)) as IGameInteropProvider
             ?? throw new InvalidOperationException("Game interop service is unavailable."),
@@ -51,7 +51,11 @@ internal class PluginInterfaceAdapter : DispatchProxy
             adapter.interopProvider.Dispose();
     }
 
-    protected override object? Invoke(MethodInfo? method, object?[]? args)
+    protected override object? Invoke
+    (
+        MethodInfo? method,
+        object?[]?  args
+    )
     {
         if (method is null) throw new ArgumentNullException(nameof(method));
         if (method.Name == nameof(IDalamudPluginInterface.GetService) && args is [Type serviceType] &&
@@ -73,11 +77,15 @@ internal class PluginInterfaceAdapter : DispatchProxy
         }
     }
 
-    private sealed unsafe class InteropProvider(IGameInteropProvider source, ISigScanner scanner) : IGameInteropProvider, IDisposable
+    private sealed unsafe class InteropProvider
+    (
+        IGameInteropProvider source,
+        ISigScanner          scanner
+    ) : IGameInteropProvider, IDisposable
     {
-        private readonly ConditionalWeakTable<AssemblyLoadContext, HashSet<IDalamudHook>> hooks = new();
-        private bool useSafetyHook;
-        private bool disposed;
+        private readonly ConditionalWeakTable<AssemblyLoadContext, HashSet<IDalamudHook>> hooks         = new();
+        private bool                                                                      useSafetyHook;
+        private bool                                                                      disposed;
 
         public void Dispose()
         {
@@ -109,16 +117,38 @@ internal class PluginInterfaceAdapter : DispatchProxy
 
         public void InitializeFromAttributes(object self) => source.InitializeFromAttributes(self);
 
-        public Hook<T> HookFromFunctionPointerVariable<T>(nint address, T detour) where T : Delegate =>
+        public Hook<T> HookFromFunctionPointerVariable<T>
+        (
+            nint address,
+            T    detour
+        ) where T : Delegate =>
             source.HookFromFunctionPointerVariable(address, detour);
 
-        public Hook<T> HookFromImport<T>(ProcessModule? module, string moduleName, string functionName, uint hintOrOrdinal, T detour)
+        public Hook<T> HookFromImport<T>
+        (
+            ProcessModule? module,
+            string         moduleName,
+            string         functionName,
+            uint           hintOrOrdinal,
+            T              detour
+        )
             where T : Delegate => source.HookFromImport(module, moduleName, functionName, hintOrOrdinal, detour);
 
-        public Hook<T> HookFromSymbol<T>(string moduleName, string exportName, T detour, HookBackend backend = HookBackend.Automatic)
+        public Hook<T> HookFromSymbol<T>
+        (
+            string      moduleName,
+            string      exportName,
+            T           detour,
+            HookBackend backend = HookBackend.Automatic
+        )
             where T : Delegate => source.HookFromSymbol(moduleName, exportName, detour, backend);
 
-        public Hook<T> HookFromAddress<T>(nint procAddress, T detour, HookBackend backend = HookBackend.Automatic) where T : Delegate
+        public Hook<T> HookFromAddress<T>
+        (
+            nint        procAddress,
+            T           detour,
+            HookBackend backend = HookBackend.Automatic
+        ) where T : Delegate
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (useSafetyHook && backend == HookBackend.Automatic)
@@ -136,16 +166,35 @@ internal class PluginInterfaceAdapter : DispatchProxy
             }
         }
 
-        public Hook<T> HookFromAddress<T>(nuint procAddress, T detour, HookBackend backend = HookBackend.Automatic) where T : Delegate =>
+        public Hook<T> HookFromAddress<T>
+        (
+            nuint       procAddress,
+            T           detour,
+            HookBackend backend = HookBackend.Automatic
+        ) where T : Delegate =>
             HookFromAddress((nint)procAddress, detour, backend);
 
-        public Hook<T> HookFromAddress<T>(void* procAddress, T detour, HookBackend backend = HookBackend.Automatic) where T : Delegate =>
+        public Hook<T> HookFromAddress<T>
+        (
+            void*       procAddress,
+            T           detour,
+            HookBackend backend = HookBackend.Automatic
+        ) where T : Delegate =>
             HookFromAddress((nint)procAddress, detour, backend);
 
-        public Hook<T> HookFromSignature<T>(string signature, T detour, HookBackend backend = HookBackend.Automatic) where T : Delegate =>
+        public Hook<T> HookFromSignature<T>
+        (
+            string      signature,
+            T           detour,
+            HookBackend backend = HookBackend.Automatic
+        ) where T : Delegate =>
             HookFromAddress(scanner.ScanText(signature), detour, backend);
 
-        private Hook<T> CreateSafetyHook<T>(nint procAddress, T detour) where T : Delegate
+        private Hook<T> CreateSafetyHook<T>
+        (
+            nint procAddress,
+            T    detour
+        ) where T : Delegate
         {
             var safetyHook = SafetyHookType.MakeGenericType(typeof(T));
             var owner = detour.Method.Module.Assembly;

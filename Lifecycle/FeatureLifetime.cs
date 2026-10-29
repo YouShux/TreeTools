@@ -7,18 +7,18 @@ namespace TreeTools.Lifecycle;
 
 public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
 {
-    private readonly object syncRoot = new();
-    private readonly CancellationTokenSource cancellation = new();
-    private readonly List<Cleanup> disposers = [];
-    private readonly List<Action> stoppingActions = [];
-    private readonly HashSet<Task> tasks = [];
-    private readonly List<Task> startupTasks = [];
-    private readonly List<Exception> errors = [];
-    private Task? stoppingTask;
-    private Task? disposalTask;
-    private bool startupClosed;
-    private bool stopping;
-    private bool disposed;
+    private readonly object                  syncRoot        = new();
+    private readonly CancellationTokenSource cancellation    = new();
+    private readonly List<Cleanup>           disposers       = [];
+    private readonly List<Action>            stoppingActions = [];
+    private readonly HashSet<Task>           tasks           = [];
+    private readonly List<Task>              startupTasks    = [];
+    private readonly List<Exception>         errors          = [];
+    private Task?                            stoppingTask;
+    private Task?                            disposalTask;
+    private bool                             startupClosed;
+    private bool                             stopping;
+    private bool                             disposed;
 
     public FeatureLifetime() => CancellationToken = cancellation.Token;
 
@@ -116,7 +116,7 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
         lock (syncRoot)
         {
             startupClosed = true;
-            pending = [.. startupTasks];
+            pending       = [.. startupTasks];
             startupTasks.Clear();
         }
         try
@@ -159,9 +159,9 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
             }
 
             stopping = true;
-            actions = [.. stoppingActions.AsEnumerable().Reverse()];
+            actions  = [.. stoppingActions.AsEnumerable().Reverse()];
             stoppingActions.Clear();
-            completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            completion   = new(TaskCreationOptions.RunContinuationsAsynchronously);
             stoppingTask = completion.Task;
         }
 
@@ -179,8 +179,8 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
             if (stoppingTask is not null)
                 return stoppingTask;
 
-            stopping = true;
-            completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            stopping     = true;
+            completion   = new(TaskCreationOptions.RunContinuationsAsynchronously);
             stoppingTask = completion.Task;
         }
 
@@ -219,9 +219,9 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
                 disposers.Any(static disposer => disposer.Async is not null))
                 throw new InvalidOperationException("The lifetime owns asynchronous work; await DisposeAsync().");
 
-            completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            completion   = new(TaskCreationOptions.RunContinuationsAsynchronously);
             disposalTask = completion.Task;
-            stopping = true;
+            stopping     = true;
         }
 
         Stop();
@@ -230,7 +230,7 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
         lock (syncRoot)
         {
             completed = [.. tasks];
-            cleanup = [.. disposers.AsEnumerable().Reverse()];
+            cleanup   = [.. disposers.AsEnumerable().Reverse()];
             disposers.Clear();
         }
 
@@ -270,7 +270,7 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
             if (disposed)
                 return Task.CompletedTask;
 
-            completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            completion   = new(TaskCreationOptions.RunContinuationsAsynchronously);
             disposalTask = completion.Task;
         }
 
@@ -278,7 +278,11 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
         return completion.Task;
     }
 
-    private async Task CompleteStopAsync(TaskCompletionSource completion, Func<Action, Task>? dispatcher)
+    private async Task CompleteStopAsync
+    (
+        TaskCompletionSource completion,
+        Func<Action, Task>?  dispatcher
+    )
     {
         Action[] actions;
         lock (syncRoot)
@@ -316,7 +320,11 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
         completion.TrySetResult();
     }
 
-    private async Task CompleteDisposeAsync(TaskCompletionSource completion, Func<Action, Task>? dispatcher)
+    private async Task CompleteDisposeAsync
+    (
+        TaskCompletionSource completion,
+        Func<Action, Task>?  dispatcher
+    )
     {
         try
         {
@@ -399,5 +407,9 @@ public sealed class FeatureLifetime : IDisposable, IAsyncDisposable
             throw new InvalidOperationException("The lifetime has stopped accepting work.");
     }
 
-    private readonly record struct Cleanup(Action? Sync, Func<ValueTask>? Async);
+    private readonly record struct Cleanup
+    (
+        Action?          Sync,
+        Func<ValueTask>? Async
+    );
 }

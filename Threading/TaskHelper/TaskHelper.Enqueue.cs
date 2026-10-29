@@ -12,7 +12,11 @@ public partial class TaskHelper
     /// </summary>
     /// <param name="task">任务对象</param>
     /// <param name="weight">队列权重 (默认为 0)</param>
-    public void Enqueue(TaskHelperTask task, int weight = 0)
+    public void Enqueue
+    (
+        TaskHelperTask task,
+        int            weight = 0
+    )
     {
         ArgumentNullException.ThrowIfNull(task);
         EnqueueCore(() => task, weight);
@@ -317,7 +321,12 @@ public partial class TaskHelper
     /// <param name="delayMS">延迟时间 (毫秒)</param>
     /// <param name="uniqueName">任务名称后缀 (将显示为 "uniqueName (延迟 X 毫秒)")</param>
     /// <param name="weight">队列权重</param>
-    public void DelayNext(int delayMS, string? uniqueName = null, int weight = 0)
+    public void DelayNext
+    (
+        int     delayMS,
+        string? uniqueName = null,
+        int     weight = 0
+    )
     {
         if (delayMS <= 0) return;
 
@@ -336,7 +345,13 @@ public partial class TaskHelper
     /// <param name="maxDelayMS">最大延迟时间 (毫秒)</param>
     /// <param name="uniqueName">任务名称后缀 (将显示为 "uniqueName (延迟 X 毫秒)")</param>
     /// <param name="weight">队列权重</param>
-    public void DelayNext(int minDelayMS, int maxDelayMS, string? uniqueName = null, int weight = 0)
+    public void DelayNext
+    (
+        int     minDelayMS,
+        int     maxDelayMS,
+        string? uniqueName = null,
+        int     weight = 0
+    )
     {
         if (maxDelayMS < minDelayMS)
             throw new ArgumentOutOfRangeException(nameof(maxDelayMS));

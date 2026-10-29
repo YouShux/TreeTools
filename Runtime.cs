@@ -12,25 +12,25 @@ using OmenTools.Interop.Game;
 using OmenTools.OmenService.Abstractions;
 using OmenTools.Threading;
 using TreeTools.Threading;
-using OmenTaskHelper = OmenTools.Threading.TaskHelper.TaskHelper;
 using IObjectTable = OmenTools.Dalamud.Services.Game.Object.Abstractions.IObjectTable;
 using IAetheryteList = OmenTools.Dalamud.Services.Game.UI.Abstractions.IAetheryteList;
+using OmenTaskHelper = OmenTools.Threading.TaskHelper.TaskHelper;
 
 namespace TreeTools;
 
 public sealed partial class Runtime : IAsyncDisposable
 {
-    private static readonly object CurrentLock = new();
-    private static Runtime? current;
-    private static readonly MethodInfo RegisterServices = typeof(DService).GetMethod("InitializeServices", MEMBER_FLAGS)
+    private static readonly object     CurrentLock       = new();
+    private static Runtime?            current;
+    private static readonly MethodInfo RegisterServices  = typeof(DService).GetMethod("InitializeServices", MEMBER_FLAGS)
         ?? throw new MissingMethodException(typeof(DService).FullName, "InitializeServices");
-    private static readonly MethodInfo ResetServices = typeof(DService).GetMethod("ResetServiceState", MEMBER_FLAGS)
+    private static readonly MethodInfo ResetServices     = typeof(DService).GetMethod("ResetServiceState", MEMBER_FLAGS)
         ?? throw new MissingMethodException(typeof(DService).FullName, "ResetServiceState");
-    private readonly DService state = DService.Instance();
-    private readonly object lifecycleLock = new();
-    private Task? serviceStartup;
-    private Task? disposal;
-    private bool expansionPrepared;
+    private readonly DService          state             = DService.Instance();
+    private readonly object            lifecycleLock     = new();
+    private Task?                      serviceStartup;
+    private Task?                      disposal;
+    private bool                       expansionPrepared;
 
     private Runtime(IDalamudPluginInterface source)
     {
@@ -66,7 +66,11 @@ public sealed partial class Runtime : IAsyncDisposable
     }
 
     /// <summary>按上游依赖顺序启动服务；排除策略由宿主提供。</summary>
-    public Task StartServicesAsync(IEnumerable<Type> excludedServices, CancellationToken cancellationToken = default)
+    public Task StartServicesAsync
+    (
+        IEnumerable<Type> excludedServices,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(excludedServices);
         lock (lifecycleLock)
@@ -82,7 +86,11 @@ public sealed partial class Runtime : IAsyncDisposable
     /// <summary>关闭新的任务队列创建入口；现有任务由各自作用域及退出链停止。</summary>
     public void BeginShutdown() => TaskHelper.CloseHostLifetime();
 
-    private async Task StartCoreAsync(Type[] excludedServices, CancellationToken cancellationToken)
+    private async Task StartCoreAsync
+    (
+        Type[]            excludedServices,
+        CancellationToken cancellationToken
+    )
     {
         if (DService.IsInitialized || DService.IsDisposed)
             throw new InvalidOperationException("Upstream services already belong to another lifecycle.");
@@ -127,7 +135,11 @@ public sealed partial class Runtime : IAsyncDisposable
             throw new AggregateException("Runtime cleanup failed.", errors);
     }
 
-    private void PrepareServices(Type[] excludedServices, CancellationToken cancellationToken)
+    private void PrepareServices
+    (
+        Type[]            excludedServices,
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!PluginInterface.Inject(state))
@@ -193,9 +205,9 @@ public sealed partial class Runtime : IAsyncDisposable
         Set(nameof(DService.ObjectTable), CreateWrapper("OmenTools.Dalamud.Services.Game.Object.ObjectTable"));
         Set(nameof(DService.AetheryteList), CreateWrapper("OmenTools.Dalamud.Services.Game.UI.AetheryteList"));
         var services = Get<Dictionary<Type, IOmenDalamudService>>("OmenDalamudServices");
-        services[typeof(IObjectTable)] = (IOmenDalamudService)state.ObjectTable;
+        services[typeof(IObjectTable)]   = (IOmenDalamudService)state.ObjectTable;
         services[typeof(IAetheryteList)] = (IOmenDalamudService)state.AetheryteList;
-        expansionPrepared = true;
+        expansionPrepared                = true;
         ExpansionInterop.Initialize(state.SigScanner.SearchBase);
         Invoke(RegisterServices, state, arguments: [excludedServices]);
     }
@@ -220,7 +232,11 @@ public sealed partial class Runtime : IAsyncDisposable
         ? value
         : throw new InvalidOperationException($"Service member {name} has an incompatible value.");
 
-    private void Set(string name, object? value) => Property(name).SetValue(state, value);
+    private void Set
+    (
+        string  name,
+        object? value
+    ) => Property(name).SetValue(state, value);
 
     private static PropertyInfo Property(string name) => typeof(DService).GetProperty(name, MEMBER_FLAGS)
         ?? throw new MissingMemberException(typeof(DService).FullName, name);

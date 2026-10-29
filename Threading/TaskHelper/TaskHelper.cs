@@ -11,26 +11,26 @@ namespace TreeTools.Threading;
 /// </summary>
 public partial class TaskHelper : IDisposable, IAsyncDisposable
 {
-    private static readonly object HostLock = new();
-    private static readonly HashSet<TaskHelper> Active = [];
-    private static readonly List<(int TaskID, string Reason)> HostFailures = [];
-    private static bool HostStopping;
-    private static Task? HostExit;
-    private readonly object syncRoot = new();
-    private readonly Runtime runtime;
-    private readonly SortedDictionary<int, LinkedList<Item>> queues = new(Comparer<int>.Create(static (left, right) => right.CompareTo(left)));
-    private readonly Channel<byte> wake = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
+    private static readonly object                            HostLock      = new();
+    private static readonly HashSet<TaskHelper>               Active        = [];
+    private static readonly List<(int TaskID, string Reason)> HostFailures  = [];
+    private static bool                                       HostStopping;
+    private static Task?                                      HostExit;
+    private readonly object                                   syncRoot      = new();
+    private readonly Runtime                                  runtime;
+    private readonly SortedDictionary<int, LinkedList<Item>>  queues        = new(Comparer<int>.Create(static (left, right) => right.CompareTo(left)));
+    private readonly Channel<byte>                            wake          = Channel.CreateBounded<byte>(new BoundedChannelOptions(1)
     {
         SingleReader = true,
         FullMode = BoundedChannelFullMode.DropWrite
     });
-    private readonly CancellationTokenSource stopping = new();
-    private readonly List<Task> retired = [];
-    private readonly List<Exception> cleanupErrors = [];
-    private Task cancellation = Task.CompletedTask;
-    private Item? current;
-    private bool disposed;
-    private bool busy;
+    private readonly CancellationTokenSource                  stopping      = new();
+    private readonly List<Task>                               retired       = [];
+    private readonly List<Exception>                          cleanupErrors = [];
+    private Task                                              cancellation  = Task.CompletedTask;
+    private Item?                                             current;
+    private bool                                              disposed;
+    private bool                                              busy;
 
     /// <summary>创建任务队列，并登记宿主退出等待。</summary>
     public TaskHelper()
@@ -70,7 +70,7 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         get
         {
             lock (syncRoot)
-                return current?.Task.GetName() ?? string.Empty;
+                return current?.Task.Name ?? string.Empty;
         }
     }
 
@@ -140,7 +140,7 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
             if (HostFailures.Count > 0)
                 throw new InvalidOperationException("上一宿主的 TaskHelper 清理失败，必须先完成宿主退出。");
             Active.Clear();
-            HostExit = null;
+            HostExit     = null;
             HostStopping = false;
         }
     }
@@ -238,7 +238,11 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
     public void RemoveQueueLastTask(int weight) => RemoveTasks(weight, 1, true, false);
 
     /// <summary>移除队列中最前面的指定数量任务。</summary>
-    public void RemoveQueueFirstNTasks(int weight, int count) => RemoveTasks(weight, count, false, false);
+    public void RemoveQueueFirstNTasks
+    (
+        int weight,
+        int count
+    ) => RemoveTasks(weight, count, false, false);
 
     /// <summary>取得指定队列中尚未执行的任务数量。</summary>
     public int GetQueueTaskCount(int weight)
@@ -247,7 +251,11 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
             return queues.TryGetValue(weight, out var queue) ? queue.Count : 0;
     }
 
-    private void EnqueueCore(Func<TaskHelperTask> factory, int weight)
+    private void EnqueueCore
+    (
+        Func<TaskHelperTask> factory,
+        int                  weight
+    )
     {
         lock (syncRoot)
         {
@@ -260,7 +268,13 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         wake.Writer.TryWrite(0);
     }
 
-    private void RemoveTasks(int weight, int count, bool last, bool removeQueue)
+    private void RemoveTasks
+    (
+        int  weight,
+        int  count,
+        bool last,
+        bool removeQueue
+    )
     {
         lock (syncRoot)
         {
@@ -291,16 +305,24 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         ObserveRetiredLocked();
     }
 
-    private static void CancelLocked(Item item, bool suppress)
+    private static void CancelLocked
+    (
+        Item item,
+        bool suppress
+    )
     {
         item.Suppressed |= suppress;
         if (item.Canceled)
             return;
-        item.Canceled = true;
+        item.Canceled     = true;
         item.Cancellation = item.Task.CancelToken.CancelAsync();
     }
 
-    private void RetireLocked(Item item, bool cancel)
+    private void RetireLocked
+    (
+        Item item,
+        bool cancel
+    )
     {
         if (cancel)
             CancelLocked(item, true);
@@ -343,7 +365,7 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
                 lock (syncRoot)
                 {
                     ObserveRetiredLocked();
-                    item = current;
+                    item    = current;
                     hasWork = item is not null || queues.Values.Any(static queue => queue.Count > 0);
                 }
                 await SetBusyAsync(hasWork).ConfigureAwait(false);
@@ -438,10 +460,10 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
                 queues.Clear();
             }
             stopping.Dispose();
-            EnterBusyState = null;
-            LeaveBusyState = null;
-            TaskTimeout = null;
-            TaskGetException = null;
+            EnterBusyState      = null;
+            LeaveBusyState      = null;
+            TaskTimeout         = null;
+            TaskGetException    = null;
             MoveToNextCheckFunc = null;
         }
         if (cleanupErrors.Count > 0)
@@ -471,10 +493,10 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
                             return;
                     if (!item.Started)
                     {
-                        item.Started = true;
+                        item.Started        = true;
                         item.Task.StartTime = Stopwatch.GetTimestamp();
                         if (ShowDebug)
-                            runtime.PluginLog.Debug($"TaskHelper 开始任务 {item.Task.GetName()}。");
+                            runtime.PluginLog.Debug($"TaskHelper 开始任务 {item.Task.Name}。");
                     }
                     execution = item.Task.AsyncAction is { } asyncAction
                         ? asyncAction(item.Task.CancelToken.Token)
@@ -514,7 +536,7 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
                 lock (syncRoot)
                     CancelLocked(item, false);
             if (error is not null)
-                runtime.PluginLog.Error(error, $"TaskHelper 任务 {item.Task.GetName()} 执行失败。");
+                runtime.PluginLog.Error(error, $"TaskHelper 任务 {item.Task.Name} 执行失败。");
             var behaviour = timedOut
                 ? item.Task.TimeoutBehaviour ?? TimeoutBehaviour
                 : item.Task.ExceptionBehaviour ?? ExceptionBehaviour;

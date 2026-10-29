@@ -11,20 +11,24 @@ namespace TreeTools;
 
 public sealed partial class Runtime
 {
-    private static readonly MethodInfo InitializeService = typeof(OmenServiceBase).GetMethod("Init", MEMBER_FLAGS)
+    private static readonly MethodInfo     InitializeService   = typeof(OmenServiceBase).GetMethod("Init", MEMBER_FLAGS)
         ?? throw new MissingMethodException(typeof(OmenServiceBase).FullName, "Init");
-    private static readonly MethodInfo UninitializeService = typeof(OmenServiceBase).GetMethod("Uninit", MEMBER_FLAGS)
+    private static readonly MethodInfo     UninitializeService = typeof(OmenServiceBase).GetMethod("Uninit", MEMBER_FLAGS)
         ?? throw new MissingMethodException(typeof(OmenServiceBase).FullName, "Uninit");
-    private static readonly PropertyInfo ServiceInitialized = typeof(OmenServiceBase).GetProperty("IsInitialized", MEMBER_FLAGS)
+    private static readonly PropertyInfo   ServiceInitialized  = typeof(OmenServiceBase).GetProperty("IsInitialized", MEMBER_FLAGS)
         ?? throw new MissingMemberException(typeof(OmenServiceBase).FullName, "IsInitialized");
-    private static readonly PropertyInfo ServiceDisposed = typeof(OmenServiceBase).GetProperty("IsDisposed", MEMBER_FLAGS)
+    private static readonly PropertyInfo   ServiceDisposed     = typeof(OmenServiceBase).GetProperty("IsDisposed", MEMBER_FLAGS)
         ?? throw new MissingMemberException(typeof(OmenServiceBase).FullName, "IsDisposed");
-    private readonly FeatureLifetime lifetime = new();
-    private readonly List<OmenServiceBase> started = [];
-    private Task? helpersStopping;
-    private Task? servicesStopping;
+    private readonly FeatureLifetime       lifetime            = new();
+    private readonly List<OmenServiceBase> started             = [];
+    private Task?                          helpersStopping;
+    private Task?                          servicesStopping;
 
-    internal Task StartServicesAsync(IReadOnlyList<OmenServiceBase> services, CancellationToken cancellationToken)
+    internal Task StartServicesAsync
+    (
+        IReadOnlyList<OmenServiceBase> services,
+        CancellationToken              cancellationToken
+    )
     {
         lifetime.AddAsync(StopStartedServicesAsync);
         return FrameworkWorkScheduler.RunAsync(services, service =>
@@ -114,7 +118,11 @@ public sealed partial class Runtime
             return helpersStopping ??= TaskHelper.StopAllAsync();
     }
 
-    private static async ValueTask ReleaseAsync<T>(IReadOnlyList<T> resources, Action<T> release)
+    private static async ValueTask ReleaseAsync<T>
+    (
+        IReadOnlyList<T> resources,
+        Action<T>        release
+    )
     {
         List<Exception> errors = [];
         await FrameworkWorkScheduler.RunAsync(resources, resource =>
@@ -132,7 +140,12 @@ public sealed partial class Runtime
             throw new AggregateException("Omen service resources failed to stop.", errors);
     }
 
-    private static void Invoke(MethodInfo method, object target, params object?[]? arguments)
+    private static void Invoke
+    (
+        MethodInfo        method,
+        object            target,
+        params object?[]? arguments
+    )
     {
         try
         {

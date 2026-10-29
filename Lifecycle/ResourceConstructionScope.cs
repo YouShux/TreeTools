@@ -18,7 +18,11 @@ public sealed class ResourceConstructionScope
         return resource;
     }
 
-    public static async Task<T> CreateAsync<T>(Func<ResourceConstructionScope, Task<T>> factory, Func<Action, Task>? dispatcher = null)
+    public static async Task<T> CreateAsync<T>
+    (
+        Func<ResourceConstructionScope, Task<T>> factory,
+        Func<Action, Task>?                      dispatcher = null
+    )
     {
         var scope = new ResourceConstructionScope();
         try

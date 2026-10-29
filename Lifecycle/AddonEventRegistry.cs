@@ -5,26 +5,30 @@ namespace TreeTools.Lifecycle;
 
 public sealed class AddonEventRegistry : IDisposable
 {
-    private readonly IAddonLifecycle addonLifecycle;
-    private readonly List<(AddonEvent EventType, string AddonName, IAddonLifecycle.AddonEventDelegate Handler)> listeners = [];
-    private bool disposed;
+    private readonly IAddonLifecycle                                                                            addonLifecycle;
+    private readonly List<(AddonEvent EventType, string AddonName, IAddonLifecycle.AddonEventDelegate Handler)> listeners      = [];
+    private bool                                                                                                disposed;
 
     public AddonEventRegistry(IAddonLifecycle addonLifecycle) => this.addonLifecycle = addonLifecycle;
 
-    public void Register(
-        AddonEvent eventType,
-        string addonName,
-        IAddonLifecycle.AddonEventDelegate handler)
+    public void Register
+    (
+        AddonEvent                         eventType,
+        string                             addonName,
+        IAddonLifecycle.AddonEventDelegate handler
+    )
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         addonLifecycle.RegisterListener(eventType, addonName, handler);
         listeners.Add((eventType, addonName, handler));
     }
 
-    public bool Release(
-        AddonEvent eventType,
-        string addonName,
-        IAddonLifecycle.AddonEventDelegate handler)
+    public bool Release
+    (
+        AddonEvent                         eventType,
+        string                             addonName,
+        IAddonLifecycle.AddonEventDelegate handler
+    )
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         for (var index = listeners.Count - 1; index >= 0; index--)
