@@ -32,9 +32,6 @@ public static class FrameworkWorkScheduler
                 }
                 while (index < items.Count && Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds < 1);
             }, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-            if (index < items.Count)
-                await framework.DelayTicks(1, cancellationToken).ConfigureAwait(false);
         }
     }
 }
