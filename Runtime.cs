@@ -28,6 +28,7 @@ public sealed partial class Runtime : IAsyncDisposable
         ?? throw new MissingMethodException(typeof(DService).FullName, "ResetServiceState");
     private readonly DService          state             = DService.Instance();
     private readonly object            lifecycleLock     = new();
+    private readonly Task              expansionStartup;
     private Task?                      serviceStartup;
     private Task?                      disposal;
     private bool                       expansionPrepared;
@@ -40,6 +41,27 @@ public sealed partial class Runtime : IAsyncDisposable
             ?? throw new InvalidOperationException("Plugin log service is unavailable.");
         ValidateServiceContract();
         PluginInterface = PluginInterfaceAdapter.Create(source);
+        if (DService.IsInitialized || DService.IsDisposed)
+            throw new InvalidOperationException("Upstream services already belong to another lifecycle.");
+        var scanner = source.GetService(typeof(ISigScanner)) as ISigScanner
+            ?? throw new InvalidOperationException("Signature scanner is unavailable.");
+        var moduleCopyPointer = scanner.SearchBase;
+        lifetime.AddAsync(() => ReleaseAsync<Action>(
+        [
+            () =>
+            {
+                if (expansionPrepared)
+                    ExpansionInterop.Uninitialize();
+            }
+        ], static action => action()));
+        expansionStartup = scanner.IsCopy && moduleCopyPointer != 0 ? Task.Run(() =>
+        {
+            lifetime.CancellationToken.ThrowIfCancellationRequested();
+            expansionPrepared = true;
+            ExpansionInterop.Initialize(moduleCopyPointer);
+            lifetime.CancellationToken.ThrowIfCancellationRequested();
+        }, lifetime.CancellationToken) : Task.CompletedTask;
+        lifetime.Track(expansionStartup);
     }
 
     internal static Runtime Current => Volatile.Read(ref current)
@@ -92,8 +114,7 @@ public sealed partial class Runtime : IAsyncDisposable
         CancellationToken cancellationToken
     )
     {
-        if (DService.IsInitialized || DService.IsDisposed)
-            throw new InvalidOperationException("Upstream services already belong to another lifecycle.");
+        await expansionStartup.WaitAsync(cancellationToken).ConfigureAwait(false);
         await Framework.RunOnFrameworkThread(() => PrepareServices(excludedServices, cancellationToken)).ConfigureAwait(false);
         await StartServicesAsync(Get<List<OmenServiceBase>>("ServiceOrder"), cancellationToken).ConfigureAwait(false);
         Set(nameof(DService.IsInitialized), true);
@@ -155,14 +176,6 @@ public sealed partial class Runtime : IAsyncDisposable
         ], static action => action()));
         lifetime.AddAsync(() => ReleaseAsync<Action>(
         [
-            () =>
-            {
-                if (expansionPrepared)
-                    ExpansionInterop.Uninitialize();
-            }
-        ], static action => action()));
-        lifetime.AddAsync(() => ReleaseAsync<Action>(
-        [
             () => Invoke(ResetServices, state),
             () => Throttler.Shared.Clear(),
             () => Set(nameof(DService.ObjectTable), null),
@@ -207,8 +220,11 @@ public sealed partial class Runtime : IAsyncDisposable
         var services = Get<Dictionary<Type, IOmenDalamudService>>("OmenDalamudServices");
         services[typeof(IObjectTable)]   = (IOmenDalamudService)state.ObjectTable;
         services[typeof(IAetheryteList)] = (IOmenDalamudService)state.AetheryteList;
-        expansionPrepared                = true;
-        ExpansionInterop.Initialize(state.SigScanner.SearchBase);
+        if (!expansionPrepared)
+        {
+            expansionPrepared = true;
+            ExpansionInterop.Initialize(state.SigScanner.SearchBase);
+        }
         Invoke(RegisterServices, state, arguments: [excludedServices]);
     }
 

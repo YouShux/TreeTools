@@ -1,8 +1,10 @@
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using OmenTools.OmenService;
 using OmenTools.OmenService.Abstractions;
 using TreeTools.Lifecycle;
 using TreeTools.Threading;
@@ -11,9 +13,11 @@ namespace TreeTools;
 
 public sealed partial class Runtime
 {
-    private static readonly MethodInfo     InitializeService   = typeof(OmenServiceBase).GetMethod("Init", MEMBER_FLAGS)
+    private static readonly Action<OmenServiceBase> InitializeService = typeof(OmenServiceBase).GetMethod("Init", MEMBER_FLAGS)
+        ?.CreateDelegate<Action<OmenServiceBase>>()
         ?? throw new MissingMethodException(typeof(OmenServiceBase).FullName, "Init");
-    private static readonly MethodInfo     UninitializeService = typeof(OmenServiceBase).GetMethod("Uninit", MEMBER_FLAGS)
+    private static readonly Action<OmenServiceBase> UninitializeService = typeof(OmenServiceBase).GetMethod("Uninit", MEMBER_FLAGS)
+        ?.CreateDelegate<Action<OmenServiceBase>>()
         ?? throw new MissingMethodException(typeof(OmenServiceBase).FullName, "Uninit");
     private static readonly PropertyInfo   ServiceInitialized  = typeof(OmenServiceBase).GetProperty("IsInitialized", MEMBER_FLAGS)
         ?? throw new MissingMemberException(typeof(OmenServiceBase).FullName, "IsInitialized");
@@ -30,14 +34,81 @@ public sealed partial class Runtime
         CancellationToken              cancellationToken
     )
     {
-        lifetime.AddAsync(StopStartedServicesAsync);
-        return FrameworkWorkScheduler.RunAsync(services, service =>
+        var prepareAetherytes = services.Any(service => service.GetType() == typeof(AetheryteRecordManager));
+        var prepareIPC = services.Any(service => service.GetType() == typeof(IPCManager));
+        var startupCode = prepareAetherytes || prepareIPC
+            ? Task.Run(() =>
+            {
+                foreach (var service in services)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (service.GetType() == typeof(AetheryteRecordManager))
+                        continue;
+                    var method = service.GetType().GetMethod("Init", MEMBER_FLAGS)
+                        ?? throw new MissingMethodException(service.GetType().FullName, "Init");
+                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (prepareIPC)
+                    RuntimeHelpers.RunClassConstructor(typeof(IPCManager).TypeHandle);
+                if (prepareAetherytes)
+                    PrepareAetheryteCode(cancellationToken);
+            }, cancellationToken)
+            : Task.CompletedTask;
+        lifetime.Track(startupCode);
+        return FrameworkWorkScheduler.RunAsync(async () =>
         {
-            if (ServiceInitialized.GetValue(service) is true || ServiceDisposed.GetValue(service) is true)
-                throw new InvalidOperationException($"Omen service {service.GetType().Name} has already entered its lifecycle.");
-            started.Add(service);
-            Invoke(InitializeService, service);
-            ServiceInitialized.SetValue(service, true);
+            lifetime.AddAsync(StopStartedServicesAsync);
+            List<OmenServiceBase> pending = [];
+            foreach (var service in services)
+            {
+                if (service.GetType() != typeof(AetheryteRecordManager))
+                {
+                    pending.Add(service);
+                    continue;
+                }
+                await FrameworkWorkScheduler.RunAsync(pending, Initialize, cancellationToken);
+                pending.Clear();
+                await startupCode;
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Begin(service);
+                    await BuildAetheryteRecordsAsync((AetheryteRecordManager)service, cancellationToken);
+                    ServiceInitialized.SetValue(service, true);
+                }
+                catch (Exception exception)
+                {
+                    PluginLog.Error(exception,
+                        "Omen service {ServiceName} failed to initialize.", service.GetType().Name);
+                    throw;
+                }
+            }
+            await FrameworkWorkScheduler.RunAsync(pending, Initialize, cancellationToken);
+            await startupCode;
+
+            void Begin(OmenServiceBase service)
+            {
+                if (ServiceInitialized.GetValue(service) is true || ServiceDisposed.GetValue(service) is true)
+                    throw new InvalidOperationException($"Omen service {service.GetType().Name} has already entered its lifecycle.");
+                started.Add(service);
+            }
+
+            void Initialize(OmenServiceBase service)
+            {
+                try
+                {
+                    Begin(service);
+                    InitializeService(service);
+                    ServiceInitialized.SetValue(service, true);
+                }
+                catch (Exception exception)
+                {
+                    PluginLog.Error(exception,
+                        "Omen service {ServiceName} failed to initialize.", service.GetType().Name);
+                    throw;
+                }
+            }
         }, cancellationToken);
     }
 
@@ -90,7 +161,7 @@ public sealed partial class Runtime
             {
                 try
                 {
-                    Invoke(UninitializeService, service);
+                    UninitializeService(service);
                 }
                 finally
                 {

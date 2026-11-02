@@ -84,7 +84,6 @@ internal class PluginInterfaceAdapter : DispatchProxy
     ) : IGameInteropProvider, IDisposable
     {
         private readonly ConditionalWeakTable<AssemblyLoadContext, HashSet<IDalamudHook>> hooks         = new();
-        private bool                                                                      useSafetyHook;
         private bool                                                                      disposed;
 
         public void Dispose()
@@ -151,7 +150,8 @@ internal class PluginInterfaceAdapter : DispatchProxy
         ) where T : Delegate
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            if (useSafetyHook && backend == HookBackend.Automatic)
+            if (backend == HookBackend.Automatic &&
+                AppContext.TryGetSwitch(SAFETY_HOOK_SWITCH, out var preferSafetyHook) && preferSafetyHook)
                 return CreateSafetyHook(procAddress, detour);
 
             try
@@ -161,7 +161,7 @@ internal class PluginInterfaceAdapter : DispatchProxy
             catch (Exception exception) when (backend == HookBackend.Automatic &&
                                                exception.Message.StartsWith("Unable to find memory location to fit MemoryBuffer", StringComparison.Ordinal))
             {
-                useSafetyHook = true;
+                AppContext.SetSwitch(SAFETY_HOOK_SWITCH, true);
                 return CreateSafetyHook(procAddress, detour);
             }
         }
@@ -224,4 +224,10 @@ internal class PluginInterfaceAdapter : DispatchProxy
             }
         }
     }
+
+    #region 常量
+
+    private const string SAFETY_HOOK_SWITCH = "TreeTools.PreferSafetyHook";
+
+    #endregion
 }

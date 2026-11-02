@@ -108,7 +108,7 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
     /// <summary>开始下一任务之前在主线程检查的条件。</summary>
     public Func<bool>? MoveToNextCheckFunc { get; set; }
 
-    /// <summary>是否输出任务调试信息。</summary>
+    /// <summary>任务调试兼容选项。</summary>
     public bool ShowDebug { get; set; }
 
     /// <summary>默认超时毫秒数；非正数表示不设置超时。</summary>
@@ -495,8 +495,6 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
                     {
                         item.Started        = true;
                         item.Task.StartTime = Stopwatch.GetTimestamp();
-                        if (ShowDebug)
-                            runtime.PluginLog.Debug($"TaskHelper 开始任务 {item.Task.Name}。");
                     }
                     execution = item.Task.AsyncAction is { } asyncAction
                         ? asyncAction(item.Task.CancelToken.Token)
