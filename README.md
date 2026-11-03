@@ -16,7 +16,18 @@ TreeTools 负责任务、生命周期、主线程调度和通用计算，让插�
 | `TreeTools.Threading` | 有界任务队列、取消、超时、重试和跨帧调度 |
 | `TreeTools.Lifecycle` | 单次启用作用域、Hook、Addon 事件和逆序释放 |
 | `TreeTools.IO` | 防止半写入配置的原子文件操作 |
+| `TreeTools.Serialization` | 当前加载上下文的共享 JSON 元数据引用检查与最终释放 |
+| `TreeTools.Reflection` | 所有代理使用者停止后释放本加载上下文的动态代理缓存引用 |
+| `TreeTools.Data` | 查表任务停止后释放共享 Lumina 缓存中的本加载上下文行类型元数据 |
 | `TreeTools.Text` | 简繁转换与拼音搜索文本 |
+
+`FrameworkWorkScheduler.RunAsync` 按原顺序执行工作项，约 1 毫秒后将剩余工作让到后续帧；`RunPipelineAsync` 让多个阶段共享每帧预算。需要统计处理耗时时，使用带 `Action<TimeSpan>` 的四参数重载，在每批结束后接收批内处理时间，包含循环和取消检查，失败或取消也报告已执行批次。统计回调在框架线程同步执行，应保持轻量。
+
+## 数据维护工具
+
+`Tools/GameData/Program.cs` 提供运行包命令行入口，由同一个 `TreeTools.csproj` 在 `TreeToolsGameDataTool=true` 时按 .NET 10 控制台程序编译。工具模式链接 Omni 工作区内 Common 的运行包模型、生成器、编解码及 CSV 读取源码，支持 `generate`、`verify` 和 `export`。普通模式继续生成游戏运行库；Common 构建时将工具模式的产物隔离在中间目录，再生成嵌入运行包。原始 JSON/CSV 和来源说明继续由 Common 维护。
+
+在 Omni 工作区执行 `dotnet build lib/TreeTools/TreeTools.csproj -p:TreeToolsGameDataTool=true -c Debug --artifacts-path <仓库外目录>`，随后通过 `dotnet <仓库外目录>/bin/TreeTools/debug/TreeTools.dll <命令及参数>` 调用维护入口。
 
 ## 系统架构中的位置
 

@@ -23,6 +23,11 @@ public sealed partial class Runtime
         ?? throw new MissingMemberException(typeof(OmenServiceBase).FullName, "IsInitialized");
     private static readonly PropertyInfo   ServiceDisposed     = typeof(OmenServiceBase).GetProperty("IsDisposed", MEMBER_FLAGS)
         ?? throw new MissingMemberException(typeof(OmenServiceBase).FullName, "IsDisposed");
+    private static readonly Func<string[]> DiscoverDataShareTags = typeof(DataShareManager).GetMethod("DiscoverDataShareTags", MEMBER_FLAGS)
+        ?.CreateDelegate<Func<string[]>>()
+        ?? throw new MissingMethodException(typeof(DataShareManager).FullName, "DiscoverDataShareTags");
+    private static readonly FieldInfo DataShareTags = typeof(DataShareManager).GetField("dataShareTags", MEMBER_FLAGS)
+        ?? throw new MissingFieldException(typeof(DataShareManager).FullName, "dataShareTags");
     private readonly FeatureLifetime       lifetime            = new();
     private readonly List<OmenServiceBase> started             = [];
     private Task?                          helpersStopping;
@@ -36,25 +41,29 @@ public sealed partial class Runtime
     {
         var prepareAetherytes = services.Any(service => service.GetType() == typeof(AetheryteRecordManager));
         var prepareIPC = services.Any(service => service.GetType() == typeof(IPCManager));
-        var startupCode = prepareAetherytes || prepareIPC
-            ? Task.Run(() =>
+        // 水晶初始化前已有预热等待；其他服务组合继续使用原初始化路径。
+        var prepareDataShare = services.SkipWhile(service => service.GetType() != typeof(AetheryteRecordManager))
+            .Any(service => service.GetType() == typeof(DataShareManager));
+        string[]? preparedDataShareTags = null;
+        var startupCode = prepareAetherytes || prepareIPC ? Task.Run(() =>
+        {
+            foreach (var service in services)
             {
-                foreach (var service in services)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (service.GetType() == typeof(AetheryteRecordManager))
-                        continue;
-                    var method = service.GetType().GetMethod("Init", MEMBER_FLAGS)
-                        ?? throw new MissingMethodException(service.GetType().FullName, "Init");
-                    RuntimeHelpers.PrepareMethod(method.MethodHandle);
-                }
                 cancellationToken.ThrowIfCancellationRequested();
-                if (prepareIPC)
-                    RuntimeHelpers.RunClassConstructor(typeof(IPCManager).TypeHandle);
-                if (prepareAetherytes)
-                    PrepareAetheryteCode(cancellationToken);
-            }, cancellationToken)
-            : Task.CompletedTask;
+                if (service.GetType() == typeof(AetheryteRecordManager))
+                    continue;
+                var method = service.GetType().GetMethod("Init", MEMBER_FLAGS)
+                    ?? throw new MissingMethodException(service.GetType().FullName, "Init");
+                RuntimeHelpers.PrepareMethod(method.MethodHandle);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (prepareDataShare)
+                preparedDataShareTags = DiscoverDataShareTags();
+            if (prepareIPC)
+                RuntimeHelpers.RunClassConstructor(typeof(IPCManager).TypeHandle);
+            if (prepareAetherytes)
+                PrepareAetheryteCode(cancellationToken);
+        }, cancellationToken) : Task.CompletedTask;
         lifetime.Track(startupCode);
         return FrameworkWorkScheduler.RunAsync(async () =>
         {
@@ -99,7 +108,11 @@ public sealed partial class Runtime
                 try
                 {
                     Begin(service);
-                    InitializeService(service);
+                    if (service is DataShareManager && prepareDataShare)
+                        DataShareTags.SetValue(service, preparedDataShareTags
+                            ?? throw new InvalidOperationException("Data share metadata preparation did not complete."));
+                    else
+                        InitializeService(service);
                     ServiceInitialized.SetValue(service, true);
                 }
                 catch (Exception exception)

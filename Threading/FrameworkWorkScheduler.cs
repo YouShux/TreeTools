@@ -14,6 +14,15 @@ public static class FrameworkWorkScheduler
         IReadOnlyList<T>  items,
         Action<T>         operation,
         CancellationToken cancellationToken = default
+    ) => RunAsync(items, operation, null, cancellationToken);
+
+    /// <summary>按约 1 毫秒预算分帧执行，并在每批结束后报告实际处理耗时；失败或取消也报告已执行批次。</summary>
+    public static Task RunAsync<T>
+    (
+        IReadOnlyList<T>   items,
+        Action<T>          operation,
+        Action<TimeSpan>?  batchCompleted,
+        CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(items);
@@ -34,12 +43,20 @@ public static class FrameworkWorkScheduler
                     await framework.DelayTicks(1, cancellationToken);
                     continue;
                 }
-                do
+                var batchStarted = batchCompleted is null ? 0 : Stopwatch.GetTimestamp();
+                try
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    operation(items[index++]);
+                    do
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        operation(items[index++]);
+                    }
+                    while (index < items.Count && Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds < 1);
                 }
-                while (index < items.Count && Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds < 1);
+                finally
+                {
+                    batchCompleted?.Invoke(Stopwatch.GetElapsedTime(batchStarted));
+                }
                 if (index < items.Count)
                     await framework.DelayTicks(1, cancellationToken);
             }

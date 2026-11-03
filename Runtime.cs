@@ -9,6 +9,7 @@ using FFXIVClientStructs.Expansion;
 using OmenTools;
 using OmenTools.Info.Lumina;
 using OmenTools.Interop.Game;
+using OmenTools.OmenService;
 using OmenTools.OmenService.Abstractions;
 using OmenTools.Threading;
 using TreeTools.Threading;
@@ -115,8 +116,11 @@ public sealed partial class Runtime : IAsyncDisposable
     )
     {
         await expansionStartup.WaitAsync(cancellationToken).ConfigureAwait(false);
-        await Framework.RunOnFrameworkThread(() => PrepareServices(excludedServices, cancellationToken)).ConfigureAwait(false);
-        await StartServicesAsync(Get<List<OmenServiceBase>>("ServiceOrder"), cancellationToken).ConfigureAwait(false);
+        await Threading.FrameworkWorkScheduler.RunAsync(async () =>
+        {
+            PrepareServices(excludedServices, cancellationToken);
+            await StartServicesAsync(Get<List<OmenServiceBase>>("ServiceOrder"), cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
         Set(nameof(DService.IsInitialized), true);
     }
 
@@ -194,6 +198,10 @@ public sealed partial class Runtime : IAsyncDisposable
             }
             finally
             {
+                // CWT.Clear 的旧容器会延迟释放依赖句柄；先断开已销毁 Hook 的委托与程序集引用。
+                foreach (var group in hooks)
+                    foreach (var hook in group.Value.Keys)
+                        if (hook.IsDisposed) group.Value.TryRemove(hook, out _);
                 hooks.Clear();
             }
         });
@@ -238,6 +246,8 @@ public sealed partial class Runtime : IAsyncDisposable
             _ = Property(name);
         if (ServiceInitialized.GetSetMethod(true) is null || ServiceDisposed.GetSetMethod(true) is null)
             throw new MissingMethodException("Upstream service state setters are unavailable.");
+        if (DataShareTags.FieldType != typeof(string[]) || DataShareTags.IsStatic || DataShareTags.IsInitOnly)
+            throw new MissingFieldException(typeof(DataShareManager).FullName, "dataShareTags:string[]");
     }
 
     private static object CreateWrapper(string name) =>
