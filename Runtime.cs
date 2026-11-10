@@ -6,6 +6,8 @@ using Dalamud.Hooking;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.Expansion;
+using FFXIVClientStructs.Expansion.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.Expansion.Interop.Generated;
 using OmenTools;
 using OmenTools.Info.Lumina;
 using OmenTools.Interop.Game;
@@ -59,7 +61,7 @@ public sealed partial class Runtime : IAsyncDisposable
         {
             lifetime.CancellationToken.ThrowIfCancellationRequested();
             expansionPrepared = true;
-            ExpansionInterop.Initialize(moduleCopyPointer);
+            InitializeExpansion(moduleCopyPointer);
             lifetime.CancellationToken.ThrowIfCancellationRequested();
         }, lifetime.CancellationToken) : Task.CompletedTask;
         lifetime.Track(expansionStartup);
@@ -160,6 +162,22 @@ public sealed partial class Runtime : IAsyncDisposable
             throw new AggregateException("Runtime cleanup failed.", errors);
     }
 
+    private void InitializeExpansion(nint moduleCopyPointer)
+    {
+        try
+        {
+            ExpansionInterop.Initialize(moduleCopyPointer);
+        }
+        catch (InvalidOperationException)
+        {
+            var resolver = new ExpansionResolver();
+            Addresses.Register(resolver);
+            var unresolved = resolver.Addresses.Where(address => address.Value == 0).ToArray();
+            if (unresolved.Length != 1 || !ReferenceEquals(unresolved[0], AgentKTGHud.Addresses.OpenAddons))
+                throw;
+        }
+    }
+
     private void PrepareServices
     (
         Type[]            excludedServices,
@@ -231,7 +249,7 @@ public sealed partial class Runtime : IAsyncDisposable
         if (!expansionPrepared)
         {
             expansionPrepared = true;
-            ExpansionInterop.Initialize(state.SigScanner.SearchBase);
+            InitializeExpansion(state.SigScanner.SearchBase);
         }
         Invoke(RegisterServices, state, arguments: [excludedServices]);
     }
