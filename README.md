@@ -25,31 +25,7 @@ TreeTools 负责任务、生命周期、主线程调度和通用计算，让插�
 
 ## 数据维护工具
 
-`Tools/GameData/Program.cs` 提供运行包命令行入口，由同一个 `TreeTools.csproj` 在 `TreeToolsGameDataTool=true` 时按 .NET 10 控制台程序编译。工具模式链接 Omni 工作区内 Common 的运行包模型、生成器、编解码及 CSV 读取源码，支持 `generate`、`verify` 和 `export`。普通模式继续生成游戏运行库；Common 构建时将工具模式的产物隔离在中间目录，再生成嵌入运行包。原始 JSON/CSV 和来源说明继续由 Common 维护。
-
-在 Omni 工作区执行 `dotnet build lib/TreeTools/TreeTools.csproj -p:TreeToolsGameDataTool=true -c Debug --artifacts-path <仓库外目录>`，随后通过 `dotnet <仓库外目录>/bin/TreeTools/debug/TreeTools.dll <命令及参数>` 调用维护入口。
-
-## 系统架构中的位置
-
-```text
-OmniToolbox
-├── OmniToolbox.Common
-│   ├── TreeTools → OmenTools + FFXIVClientStructs.Expansion
-│   ├── TreeToolKit → TreeTools + KamiToolKit + OmenTools
-│   └── Localizations
-├── OmniToolbox.Tree
-├── OmniToolbox.TreePublic
-└── TreeHouseOnline
-```
-
-| 项目 | 一起使用时负责什么 |
-| --- | --- |
-| [OmniToolbox.Common](https://github.com/YouShux/OmniToolbox.Common) | 模块契约、配置、本地化、共享界面和公共服务 |
-| `OmniToolbox.Tree` | 随 Omni 发布的私有功能模块 |
-| [OmniToolbox.TreePublic](https://github.com/YouShux/OmniToolbox.TreePublic) | 随 Omni 发布的公开功能模块 |
-| [TreeToolKit](https://github.com/YouShux/TreeToolKit) | Kami 原生界面、窗口、节点与字体 |
-| [Localizations](https://github.com/YouShux/OmniToolbox.Localizations) | 官方简繁界面词条 |
-| [TreeHouseOnline](https://github.com/YouShux/OmniToolbox.TreeHouseOnline) | 把以上能力组合成可发布模块 |
+在 Omni 工作区执行 `dotnet build lib/TreeTools/TreeTools.csproj -p:TreeToolsGameDataTool=true -c Debug --artifacts-path <仓库外目录>`，随后通过 `dotnet <仓库外目录>/bin/TreeTools/debug/TreeTools.dll <命令及参数>` 调用 `generate`、`verify` 或 `export`。工具模式依赖 Omni Common 源码。
 
 ## 接入宿主
 

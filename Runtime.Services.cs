@@ -41,7 +41,6 @@ public sealed partial class Runtime
     {
         var prepareAetherytes = services.Any(service => service.GetType() == typeof(AetheryteRecordManager));
         var prepareIPC = services.Any(service => service.GetType() == typeof(IPCManager));
-        // 水晶初始化前已有预热等待；其他服务组合继续使用原初始化路径。
         var prepareDataShare = services.SkipWhile(service => service.GetType() != typeof(AetheryteRecordManager))
             .Any(service => service.GetType() == typeof(DataShareManager));
         string[]? preparedDataShareTags = null;

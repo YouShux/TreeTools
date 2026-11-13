@@ -10,7 +10,6 @@ public partial class TaskHelper
     /// <summary>
     ///     将任务封装对象加入队列
     /// </summary>
-    /// <param name="task">任务对象</param>
     /// <param name="weight">队列权重 (默认为 0)</param>
     public void Enqueue
     (
@@ -26,20 +25,13 @@ public partial class TaskHelper
     ///     将同步任务加入队列
     /// </summary>
     /// <param name="task">
-    ///     任务执行逻辑 <br />
     ///     返回 <c>true</c> 表示任务完成 <br />
     ///     返回 <c>false</c> 表示任务未完成，将在下一帧继续执行
     /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void Enqueue
     (
         Func<bool>          task,
@@ -58,17 +50,10 @@ public partial class TaskHelper
     /// <summary>
     ///     将一次性同步操作加入队列
     /// </summary>
-    /// <param name="task">要执行的操作</param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void Enqueue
     (
         Action              task,
@@ -100,20 +85,12 @@ public partial class TaskHelper
     ///     将可能返回 null 的同步任务加入队列
     /// </summary>
     /// <param name="task">
-    ///     任务执行逻辑 <br />
     ///     返回 <c>true</c> 表示任务完成；<c>null</c> 与 <c>false</c> 均表示重试 <br />
-    ///     返回 <c>false</c> 表示任务未完成，将在下一帧继续执行
     /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void Enqueue
     (
         Func<bool?>         task,
@@ -135,21 +112,13 @@ public partial class TaskHelper
     ///     将异步任务加入队列
     /// </summary>
     /// <param name="asyncTask">
-    ///     异步任务执行逻辑 <br />
-    ///     接受 <see cref="CancellationToken" /> <br />
     ///     返回 <c>true</c> 表示任务完成 <br />
     ///     返回 <c>false</c> 表示任务未完成，将在下一帧继续执行
     /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void EnqueueAsync
     (
         Func<CancellationToken, Task<bool>> asyncTask,
@@ -168,20 +137,10 @@ public partial class TaskHelper
     /// <summary>
     ///     将不返回结果的异步任务加入队列
     /// </summary>
-    /// <param name="asyncTask">
-    ///     异步任务执行逻辑 <br />
-    ///     接受 <see cref="CancellationToken" />
-    /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void EnqueueAsync
     (
         Func<CancellationToken, Task> asyncTask,
@@ -213,21 +172,12 @@ public partial class TaskHelper
     ///     将可能返回 null 的异步任务加入队列
     /// </summary>
     /// <param name="asyncTask">
-    ///     异步任务执行逻辑 <br />
-    ///     接受 <see cref="CancellationToken" /> <br />
     ///     返回 <c>true</c> 表示任务完成；<c>null</c> 与 <c>false</c> 均表示重试 <br />
-    ///     返回 <c>false</c> 表示任务未完成，将在下一帧继续执行
     /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void EnqueueAsync
     (
         Func<CancellationToken, Task<bool?>> asyncTask,
@@ -245,20 +195,13 @@ public partial class TaskHelper
     ///     将不接受 CancellationToken 的异步任务加入队列
     /// </summary>
     /// <param name="asyncTask">
-    ///     异步任务执行逻辑 <br />
     ///     返回 <c>true</c> 表示任务完成 <br />
     ///     返回 <c>false</c> 表示任务未完成，将在下一帧继续执行
     /// </param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void EnqueueAsync
     (
         Func<Task<bool>>    asyncTask,
@@ -275,17 +218,10 @@ public partial class TaskHelper
     /// <summary>
     ///     将不接受 CancellationToken 且不返回结果的异步任务加入队列
     /// </summary>
-    /// <param name="asyncTask">异步任务执行逻辑</param>
-    /// <param name="name">任务名称</param>
     /// <param name="timeoutMS">
     ///     超时时间 (毫秒) <br />
     ///     默认为 0; 设置为 ≤ 0 以默认不超时
     /// </param>
-    /// <param name="timeoutBehaviour">超时控制行为</param>
-    /// <param name="exceptionBehaviour">异常控制行为</param>
-    /// <param name="timeoutAction">超时额外执行逻辑</param>
-    /// <param name="exceptionAction">异常额外执行逻辑</param>
-    /// <param name="weight">队列权重</param>
     public void EnqueueAsync
     (
         Func<Task>          asyncTask,
@@ -320,7 +256,6 @@ public partial class TaskHelper
     /// </summary>
     /// <param name="delayMS">延迟时间 (毫秒)</param>
     /// <param name="uniqueName">任务名称后缀 (将显示为 "uniqueName (延迟 X 毫秒)")</param>
-    /// <param name="weight">队列权重</param>
     public void DelayNext
     (
         int     delayMS,
@@ -341,10 +276,7 @@ public partial class TaskHelper
     /// <summary>
     ///     随机延迟执行下一个任务
     /// </summary>
-    /// <param name="minDelayMS">最小延迟时间 (毫秒)</param>
-    /// <param name="maxDelayMS">最大延迟时间 (毫秒)</param>
     /// <param name="uniqueName">任务名称后缀 (将显示为 "uniqueName (延迟 X 毫秒)")</param>
-    /// <param name="weight">队列权重</param>
     public void DelayNext
     (
         int     minDelayMS,

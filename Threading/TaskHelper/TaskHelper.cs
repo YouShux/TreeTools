@@ -64,7 +64,6 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         }
     }
 
-    /// <summary>当前任务名称。</summary>
     public string CurrentTaskName
     {
         get
@@ -84,7 +83,6 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         }
     }
 
-    /// <summary>是否还有排队或正在执行的任务。</summary>
     public bool IsBusy => CurrentTasksCount > 0;
 
     /// <summary>进入繁忙状态时在主线程触发。</summary>
@@ -108,7 +106,6 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
     /// <summary>开始下一任务之前在主线程检查的条件。</summary>
     public Func<bool>? MoveToNextCheckFunc { get; set; }
 
-    /// <summary>任务调试兼容选项。</summary>
     public bool ShowDebug { get; set; }
 
     /// <summary>默认超时毫秒数；非正数表示不设置超时。</summary>
@@ -217,7 +214,6 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
         wake.Writer.TryWrite(0);
     }
 
-    /// <summary>创建指定权重的队列。</summary>
     public void AddQueue(int weight)
     {
         lock (syncRoot)
@@ -228,23 +224,18 @@ public partial class TaskHelper : IDisposable, IAsyncDisposable
     /// <summary>移除队列及尚未执行的任务。</summary>
     public void RemoveQueue(int weight) => RemoveTasks(weight, int.MaxValue, false, true);
 
-    /// <summary>清空队列中尚未执行的任务。</summary>
     public void RemoveQueueTasks(int weight) => RemoveTasks(weight, int.MaxValue, false, false);
 
-    /// <summary>移除队列中第一个尚未执行的任务。</summary>
     public void RemoveQueueFirstTask(int weight) => RemoveTasks(weight, 1, false, false);
 
-    /// <summary>移除队列中最后一个尚未执行的任务。</summary>
     public void RemoveQueueLastTask(int weight) => RemoveTasks(weight, 1, true, false);
 
-    /// <summary>移除队列中最前面的指定数量任务。</summary>
     public void RemoveQueueFirstNTasks
     (
         int weight,
         int count
     ) => RemoveTasks(weight, count, false, false);
 
-    /// <summary>取得指定队列中尚未执行的任务数量。</summary>
     public int GetQueueTaskCount(int weight)
     {
         lock (syncRoot)

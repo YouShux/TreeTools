@@ -29,7 +29,6 @@ public sealed class TaskHelperTask
 
     internal CancellationTokenSource CancelToken { get; } = new();
 
-    /// <summary>任务显示名称。</summary>
     public string Name { get; }
 
     internal long StartTime { get; set; }
@@ -78,6 +77,5 @@ public sealed class TaskHelperTask
         ExceptionAction    = exceptionAction;
     }
 
-    /// <summary>获取用于队列状态及日志的名称。</summary>
     public string GetName() => Name;
 }

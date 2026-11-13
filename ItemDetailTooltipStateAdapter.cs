@@ -17,7 +17,7 @@ namespace TreeTools;
 
 public sealed unsafe class ItemDetailTooltipStateAdapter : IDisposable
 {
-    // Categories 1-4 are racing chocobo registration and breeding records that legitimately use the rating group.
+    // 分类 1 至 4 是使用评级分组的陆行鸟登记与繁育记录。
     private static readonly HashSet<uint> ChocoboRegistrationItemIDs =
         LuminaGetter.Get<RacingChocoboItem>()
             .Where(row => row.Category is >= 1 and <= 4)
@@ -31,7 +31,7 @@ public sealed unsafe class ItemDetailTooltipStateAdapter : IDisposable
     public ItemDetailTooltipStateAdapter()
     {
         addonEvents = new(DService.Instance().AddonLifecycle);
-        addonEvents.Register(AddonEvent.PostRequestedUpdate, ITEM_DETAIL_ADDON_NAME, OnItemDetailPostRequestedUpdate);
+        addonEvents.Register(AddonEvent.PreRequestedUpdate, ITEM_DETAIL_ADDON_NAME, OnItemDetailPreRequestedUpdate);
     }
 
     public void Dispose()
@@ -43,10 +43,10 @@ public sealed unsafe class ItemDetailTooltipStateAdapter : IDisposable
         addonEvents.Dispose();
     }
 
-    private static void OnItemDetailPostRequestedUpdate(AddonEvent _, AddonArgs args)
+    private static void OnItemDetailPreRequestedUpdate(AddonEvent _, AddonArgs args)
     {
         var addon = (AddonItemDetail*)args.Addon.Address;
-        if (addon == null || !((AtkUnitBase*)addon)->IsAddonAndNodesReady())
+        if (addon == null)
             return;
 
         var itemID = ItemUtil.GetBaseId(AgentItemDetail.Instance()->ItemId).ItemId;
@@ -57,29 +57,37 @@ public sealed unsafe class ItemDetailTooltipStateAdapter : IDisposable
         var stringArrayData = AtkStage.Instance()->GetStringArrayData(StringArrayType.ItemDetail);
         if (numberArrayData == null || numberArrayData->IntArray == null ||
             stringArrayData == null || stringArrayData->StringArray == null)
-        {
             return;
+
+        var flags = numberArrayData->IntArray[ITEM_DETAIL_FLAGS_INDEX];
+        if ((flags & NATIVE_BONUSES_GROUP_FLAG) == 0)
+            return;
+
+        var isConsumable = LuminaGetter.TryGetRow<Item>(itemID, out var item) &&
+                           item.ItemUICategory.RowId is 44 or 45 or 46;
+        var flagsToSet = 0;
+        if (isConsumable)
+        {
+            ref var effectText = ref stringArrayData->StringArray[(int)TooltipItemType.Effect];
+            if (effectText.HasValue && !new ReadOnlySeString(new CStringPointer(effectText.Value).AsSpan()).IsEmpty)
+                flagsToSet = NATIVE_EFFECTS_GROUP_FLAG;
+        }
+        else
+        {
+            var chocoboRatingTitle = LuminaWrapper.GetAddonText(CHOCOBO_RATING_TITLE_ROW_ID);
+            if (chocoboRatingTitle.Length == 0)
+                return;
+
+            ref var titleText = ref stringArrayData->StringArray[(int)TooltipItemType.SpecialTitle];
+            if (!titleText.HasValue)
+                return;
+
+            var title = new ReadOnlySeString(new CStringPointer(titleText.Value).AsSpan());
+            if (!title.ExtractText().Equals(chocoboRatingTitle, StringComparison.Ordinal))
+                return;
         }
 
-        var flags = (TooltipItemGroupFlags)numberArrayData->IntArray[ITEM_DETAIL_FLAGS_INDEX];
-        if ((flags & CHOCOBO_RATING_GROUP_FLAGS) != CHOCOBO_RATING_GROUP_FLAGS)
-            return;
-
-        var chocoboRatingTitle = LuminaWrapper.GetAddonText(CHOCOBO_RATING_TITLE_ROW_ID);
-        if (chocoboRatingTitle.Length == 0)
-            return;
-
-        ref var titleText = ref stringArrayData->StringArray[(int)TooltipItemType.SpecialTitle];
-        if (!titleText.HasValue)
-            return;
-
-        var title = new ReadOnlySeString(new CStringPointer(titleText.Value).AsSpan());
-        if (!title.ExtractText().Equals(chocoboRatingTitle, StringComparison.Ordinal))
-            return;
-
-        numberArrayData->IntArray[ITEM_DETAIL_FLAGS_INDEX] = (int)(flags & ~CHOCOBO_RATING_GROUP_FLAGS);
-        addon->GenerateItemTooltip(numberArrayData, stringArrayData);
-        addon->UpdateGroupPositions(numberArrayData, stringArrayData);
+        numberArrayData->IntArray[ITEM_DETAIL_FLAGS_INDEX] = (flags & ~NATIVE_BONUSES_GROUP_FLAG) | flagsToSet;
     }
 
     #region 常量
@@ -90,8 +98,9 @@ public sealed unsafe class ItemDetailTooltipStateAdapter : IDisposable
 
     private const int ITEM_DETAIL_FLAGS_INDEX = 5;
 
-    private const TooltipItemGroupFlags CHOCOBO_RATING_GROUP_FLAGS =
-        TooltipItemGroupFlags.HeaderStatsGroup | TooltipItemGroupFlags.Effects;
+    private const int NATIVE_EFFECTS_GROUP_FLAG = 1 << 8;
+
+    private const int NATIVE_BONUSES_GROUP_FLAG = 1 << 4;
 
     #endregion
 }
